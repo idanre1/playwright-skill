@@ -1,6 +1,6 @@
 ---
 name: playwright-skill
-description: Complete browser automation with Playwright. Auto-detects dev servers, writes clean test scripts to /tmp. Test pages, fill forms, take screenshots, check responsive design, validate UX, test login flows, check links, automate any browser task. Use when user wants to test websites, automate browser interactions, validate web functionality, or perform any browser-based testing.
+description: "Fallback browser automation with Playwright. Use ONLY when Claude's built-in web_fetch tool fails or is insufficient (JS-rendered pages, interactive tasks, screenshots, form filling, auth flows). Try web_fetch first for simple page reading. When Playwright is needed: auto-detects dev servers, writes clean test scripts to /tmp, handles screenshots, responsive testing, login flows, link checking, and any browser automation."
 ---
 
 **IMPORTANT - Path Resolution:**
@@ -12,11 +12,42 @@ Common installation paths:
 - Manual global: `~/.claude/skills/playwright-skill`
 - Project-specific: `<project>/.claude/skills/playwright-skill`
 
-# Playwright Browser Automation
+# Playwright Browser Automation (Fallback Mode)
 
-General-purpose browser automation skill. I'll write custom Playwright code for any automation task you request and execute it via the universal executor.
+Playwright is a **fallback** for when Claude's built-in `web_fetch` tool cannot accomplish the task. Always try `web_fetch` first.
 
-**CRITICAL WORKFLOW - Follow these steps in order:**
+## CRITICAL: web_fetch First, Playwright Second
+
+**Before using Playwright, ALWAYS try `web_fetch` first** for any URL fetching task. Only escalate to Playwright when `web_fetch` fails or is fundamentally insufficient.
+
+### When web_fetch is sufficient (DO NOT use Playwright):
+
+- Reading static page content (text, HTML)
+- Fetching API responses (JSON, XML)
+- Downloading files or documents
+- Reading page metadata, titles, headings
+- Checking if a URL is reachable (status codes)
+
+### When to escalate to Playwright (web_fetch failed or cannot work):
+
+- **web_fetch returned an error** (blocked, timeout, CAPTCHA, anti-bot)
+- **JavaScript-rendered content** - page content loads dynamically via JS (web_fetch returns empty/skeleton HTML)
+- **Interactive tasks** - form filling, clicking buttons, navigating multi-step flows
+- **Screenshots** - visual capture of pages, responsive design testing
+- **Authentication flows** - login sequences, cookie/session management
+- **Real browser testing** - checking actual rendering, CSS, layout, UX behavior
+- **Network interception** - mocking APIs, blocking resources, modifying requests
+
+### Decision flowchart:
+
+1. User asks to read/fetch a web page → **Try `web_fetch` first**
+2. `web_fetch` succeeds and content is complete → **Done, no Playwright needed**
+3. `web_fetch` fails OR content is incomplete/empty → **Escalate to Playwright**
+4. User explicitly asks for screenshots, interaction, or browser testing → **Use Playwright directly**
+
+## Playwright Workflow (when escalation is needed)
+
+**Follow these steps in order:**
 
 1. **Auto-detect dev servers** - For localhost testing, ALWAYS run server detection FIRST:
 
@@ -37,11 +68,13 @@ General-purpose browser automation skill. I'll write custom Playwright code for 
 ## How It Works
 
 1. You describe what you want to test/automate
-2. I auto-detect running dev servers (or ask for URL if testing external site)
-3. I write custom Playwright code in `/tmp/playwright-test-*.js` (won't clutter your project)
-4. I execute it via: `cd $SKILL_DIR && node run.js /tmp/playwright-test-*.js`
-5. Results displayed in real-time, browser window visible for debugging
-6. Test files auto-cleaned from /tmp by your OS
+2. I first try `web_fetch` if the task is simple page reading
+3. If `web_fetch` fails or task requires browser interaction, I escalate to Playwright
+4. I auto-detect running dev servers (or ask for URL if testing external site)
+5. I write custom Playwright code in `/tmp/playwright-test-*.js` (won't clutter your project)
+6. I execute it via: `cd $SKILL_DIR && node run.js /tmp/playwright-test-*.js`
+7. Results displayed in real-time, browser window visible for debugging
+8. Test files auto-cleaned from /tmp by your OS
 
 ## Setup (First Time)
 
@@ -413,15 +446,41 @@ Add wait: `await page.waitForSelector('.element', { timeout: 10000 })`
 
 ## Example Usage
 
+### Fallback pattern: web_fetch fails → Playwright
+
+```
+User: "Read the content of https://example.com/pricing"
+
+Claude: Let me try web_fetch first...
+[Runs: web_fetch("https://example.com/pricing")]
+[Output: Success - returns page content]
+Here's the pricing page content: ...
+(No Playwright needed!)
+```
+
+```
+User: "Read the content of https://spa-app.com/dashboard"
+
+Claude: Let me try web_fetch first...
+[Runs: web_fetch("https://spa-app.com/dashboard")]
+[Output: Returns skeleton HTML with empty div - JS-rendered content]
+web_fetch returned incomplete content (JS-rendered page). Escalating to Playwright...
+
+[Detects servers, writes script, executes with Playwright]
+[Returns full rendered content]
+```
+
+### Direct Playwright: interactive/visual tasks
+
 ```
 User: "Test if the marketing page looks good"
 
-Claude: I'll test the marketing page across multiple viewports. Let me first detect running servers...
+Claude: This requires visual testing (screenshots), so I'll use Playwright directly.
 [Runs: detectDevServers()]
 [Output: Found server on port 3001]
 I found your dev server running on http://localhost:3001
 
-[Writes custom automation script to /tmp/playwright-test-marketing.js with URL parameterized]
+[Writes custom automation script to /tmp/playwright-test-marketing.js]
 [Runs: cd $SKILL_DIR && node run.js /tmp/playwright-test-marketing.js]
 [Shows results with screenshots from /tmp/]
 ```
@@ -429,7 +488,7 @@ I found your dev server running on http://localhost:3001
 ```
 User: "Check if login redirects correctly"
 
-Claude: I'll test the login flow. First, let me check for running servers...
+Claude: This requires browser interaction, so I'll use Playwright.
 [Runs: detectDevServers()]
 [Output: Found servers on ports 3000 and 3001]
 I found 2 dev servers. Which one should I test?
