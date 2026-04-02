@@ -105,6 +105,7 @@ Playwright is a **fallback** for when Claude's built-in `web_fetch` tool cannot 
 ```bash
 cd $SKILL_DIR
 npm run setup
+npx playwright install-deps chromium
 ```
 
 This installs Playwright and Chromium browser. Only needed once.
