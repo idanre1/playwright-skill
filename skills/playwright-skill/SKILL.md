@@ -40,9 +40,9 @@ Playwright is a **fallback** for when Claude's built-in `web_fetch` tool cannot 
 
 ### Decision flowchart:
 
-1. User asks to read/fetch a web page → **Try `web_fetch` first**
+1. User/Agent asks to read/fetch a web page → CRITICAL: **Try `web_fetch` first**
 2. `web_fetch` succeeds and content is complete → **Done, no Playwright needed**
-3. `web_fetch` fails OR content is incomplete/empty → **Escalate to Playwright**
+3. `web_fetch` fails OR content is incomplete/empty → **Escalate to Playwright** using the "Playwright Workflow" outlined below.
 4. User explicitly asks for screenshots, interaction, or browser testing → **Use Playwright directly**
 
 ## CRITICAL: Rate Limiting for Web Fetching
