@@ -45,6 +45,30 @@ Playwright is a **fallback** for when Claude's built-in `web_fetch` tool cannot 
 3. `web_fetch` fails OR content is incomplete/empty → **Escalate to Playwright**
 4. User explicitly asks for screenshots, interaction, or browser testing → **Use Playwright directly**
 
+## CRITICAL: Rate Limiting for Web Fetching
+
+**Always rate-limit requests to the same site** (whether using `web_fetch` or Playwright). Different sites may be fetched in parallel, but requests to the **same domain** must be sequential with delays.
+
+### Rules:
+
+- **No parallel requests to the same site.** Send them sequentially with `sleep 2` or `sleep 3` between each request.
+- **Empty response (0 bytes):** Wait 3–5 seconds and retry the request.
+- **HTTP 429 (Too Many Requests):** Back off for 10–15 seconds before retrying.
+- **Good pattern:** Fetch one search-result listing page, parse it, then fetch individual threads/pages one at a time with delays between each.
+
+### Example pattern (multi-page fetch):
+
+```
+1. Fetch listing page (e.g., search results)
+2. Parse URLs from the listing
+3. For each URL (sequentially, same site):
+   a. sleep 2-3 seconds
+   b. Fetch the page
+   c. If empty response → sleep 3-5s → retry once
+   d. If HTTP 429 → sleep 10-15s → retry
+4. Different sites can be fetched in parallel
+```
+
 ## Playwright Workflow (when escalation is needed)
 
 **Follow these steps in order:**
